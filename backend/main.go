@@ -67,6 +67,7 @@ func main() {
 	apiGroup.Post("/listings/:id/images", app.UploadListingImage())
 	apiGroup.Get("/listings/:id/images", app.GetListingImages())
 	apiGroup.Post("/rent", app.CreateBooking())
+	apiGroup.Get("/rent/calculate", app.CalculateBookingPrice())
 	apiGroup.Get("/listings", app.GetListings())
 	apiGroup.Get("/listings/available", app.GetAvailableListings())
 	apiGroup.Get("/my-listings", app.GetMyListings())

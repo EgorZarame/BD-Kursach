@@ -9,6 +9,7 @@ type ListingRequest struct {
 	Description string `json:"description"`
 	UserComment string `json:"user_comment"`
 	UserEmail   string `json:"user_email"`
+	Floor       *int   `json:"floor"`
 }
 
 // CreateBookingRequest описывает запрос на создание бронирования

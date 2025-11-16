@@ -168,7 +168,8 @@
 }
 
 .listing-address {
-    font-size: 13px;
+    font-size: 16px;
+    font-weight: 600;
     color: #888;
 }
 
@@ -256,6 +257,24 @@
     display: flex;
     gap: 0.5rem;
     flex-shrink: 0;
+}
+
+.modal-main .estimated-price {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: #f0f8ff;
+    border-radius: 6px;
+    border: 1px solid #d0e8ff;
+}
+
+.modal-main .estimated-price p {
+    margin: 0.25rem 0;
+}
+
+.modal-main .estimated-price strong {
+    color: #0066cc;
+    font-size: 1.1rem;
 }
 
 .modal-main .image-container img {

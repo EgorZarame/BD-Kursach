@@ -9,6 +9,7 @@ type AvailableListing struct {
 	Price   string `json:"price"`
 	Comment string `json:"comment"`
 	UserID  int    `json:"user_id"`
+	Floor   *int   `json:"floor"`
 }
 
 // BookingView используется в ответе /api/my-bookings
@@ -21,4 +22,5 @@ type BookingView struct {
 	Type        string `json:"type"`
 	City        string `json:"city"`
 	Address     string `json:"address"`
+	Floor       *int   `json:"floor"`
 }

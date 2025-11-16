@@ -126,6 +126,65 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     let currentListingId = null;
+    let calculatePriceTimeout = null;
+
+    // Функция для расчета предварительной стоимости
+    async function calculatePrice() {
+        const startDateEl = document.getElementById('start-date');
+        const endDateEl = document.getElementById('end-date');
+        const estimatedPriceEl = document.getElementById('estimated-price');
+        const priceAmountEl = document.getElementById('price-amount');
+        const priceDetailsEl = document.getElementById('price-details');
+
+        if (!currentListingId || !startDateEl || !endDateEl) return;
+
+        const start = startDateEl.value;
+        const end = endDateEl.value;
+
+        if (!start || !end) {
+            estimatedPriceEl.style.display = 'none';
+            return;
+        }
+
+        // Проверка, что дата окончания позже даты начала
+        if (new Date(end) <= new Date(start)) {
+            estimatedPriceEl.style.display = 'none';
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/api/rent/calculate?building_id=${currentListingId}&start_date=${start}&end_date=${end}`);
+            if (resp.ok) {
+                const data = await resp.json();
+                priceAmountEl.textContent = (data.total_amount || 0).toLocaleString('ru-RU');
+                const days = data.days || 0;
+                const months = data.months || 0;
+                priceDetailsEl.textContent = `(${days} ${days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}, ${months} ${months === 1 ? 'месяц' : months < 5 ? 'месяца' : 'месяцев'})`;
+                estimatedPriceEl.style.display = 'block';
+            } else {
+                estimatedPriceEl.style.display = 'none';
+            }
+        } catch (err) {
+            console.error('Ошибка расчета стоимости', err);
+            estimatedPriceEl.style.display = 'none';
+        }
+    }
+
+    // Обработчики изменения дат с задержкой (debounce)
+    const startDateEl = document.getElementById('start-date');
+    const endDateEl = document.getElementById('end-date');
+    if (startDateEl) {
+        startDateEl.addEventListener('change', () => {
+            clearTimeout(calculatePriceTimeout);
+            calculatePriceTimeout = setTimeout(calculatePrice, 300);
+        });
+    }
+    if (endDateEl) {
+        endDateEl.addEventListener('change', () => {
+            clearTimeout(calculatePriceTimeout);
+            calculatePriceTimeout = setTimeout(calculatePrice, 300);
+        });
+    }
 
     const bookingForm = document.querySelector('.booking-form');
     if (bookingForm) {
@@ -152,6 +211,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const data = await resp.json();
                     alert('Бронирование создано. Сумма: ' + (data.total_amount || 0));
                     document.getElementById('modal').style.display = 'none';
+                    // Очищаем форму
+                    document.getElementById('start-date').value = '';
+                    document.getElementById('end-date').value = '';
+                    document.getElementById('estimated-price').style.display = 'none';
                 } else {
                     const txt = await resp.text();
                     alert('Ошибка бронирования: ' + txt);
@@ -170,6 +233,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         const city = (document.getElementById('city').value || '').trim();
         const dateFrom = (document.getElementById('date-from')?.value || '').trim();
         const dateTo = (document.getElementById('date-to')?.value || '').trim();
+        const floorMinInput = document.getElementById('floor-min')?.value;
+        const floorMaxInput = document.getElementById('floor-max')?.value;
+        const floorMin = floorMinInput ? parseInt(floorMinInput) : null;
+        const floorMax = floorMaxInput ? parseInt(floorMaxInput) : null;
 
         const baseMatch = (listing) => {
             const priceNum = parseInt(listing.price) || 0;
@@ -177,7 +244,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             const listingTypeCode = normalizeTypeCode(listing.type || listing.name || '');
             const typeOk = !type || listingTypeCode === type;
             const cityOk = !city || normalizeCityCode(listing.city) === city;
-            return priceOk && typeOk && cityOk;
+            const listingFloor = listing.floor !== null && listing.floor !== undefined ? listing.floor : null;
+            // Если фильтр по этажу не указан, пропускаем все объявления
+            let floorOk = true;
+            if (floorMin !== null || floorMax !== null) {
+                if (listingFloor === null) {
+                    // Если этаж не указан в объявлении, но фильтр задан - не показываем
+                    floorOk = false;
+                } else {
+                    const min = floorMin !== null ? floorMin : 0;
+                    const max = floorMax !== null ? floorMax : 999999;
+                    floorOk = listingFloor >= min && listingFloor <= max;
+                }
+            }
+            return priceOk && typeOk && cityOk && floorOk;
         };
 
         let result = [];
@@ -210,6 +290,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         document.getElementById('city').value = '';
         document.getElementById('date-from').value = '';
         document.getElementById('date-to').value = '';
+        document.getElementById('floor-min').value = '';
+        document.getElementById('floor-max').value = '';
         renderListings(listingsData);
         document.querySelectorAll('.filter').forEach(f => f.classList.remove('active'));
     });
@@ -229,12 +311,23 @@ document.addEventListener('DOMContentLoaded', async function() {
         const addrEl = document.querySelector('.modal-address');
         const imgEl = document.querySelector('.modal-image');
         if (titleEl) titleEl.textContent = title;
+        const floorEl = document.querySelector('.modal-floor');
         if (priceEl) priceEl.textContent = `${priceNum.toLocaleString()} ₽/мес`;
         if (descriptionEl) descriptionEl.textContent = listing.description || listing.comment || '';
         if (commentEl) commentEl.textContent = listing.user_comment || '';
         if (cityEl) cityEl.textContent = `Город: ${getCityName(listing.city)}`;
         if (addrEl) addrEl.textContent = `Адрес: ${listing.address}`;
+        if (floorEl) floorEl.textContent = `Этаж: ${listing.floor !== null && listing.floor !== undefined ? listing.floor : 'Не указан'}`;
         if (imgEl) imgEl.src = img;
+        
+        // Очищаем поля дат и скрываем предварительную стоимость
+        const startDateEl = document.getElementById('start-date');
+        const endDateEl = document.getElementById('end-date');
+        const estimatedPriceEl = document.getElementById('estimated-price');
+        if (startDateEl) startDateEl.value = '';
+        if (endDateEl) endDateEl.value = '';
+        if (estimatedPriceEl) estimatedPriceEl.style.display = 'none';
+        
         if (modal) modal.style.display = 'flex';
     }
 
@@ -251,6 +344,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const priceNum = parseInt(listing.price) || 0;
             const img = imagesMap[listing.id] || '/frontend/public/image1.jpg';
             const description = listing.description || listing.comment || '';
+            const floorText = listing.floor !== null && listing.floor !== undefined ? `Этаж: ${listing.floor}` : '';
             return `
         <div class="listing">
             <img src="${img}" alt="Фото помещения" class="listing-image">
@@ -258,6 +352,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <h3 class="listing-title">${title}</h3>
                 <p class="listing-price">${priceNum.toLocaleString()} ₽/мес</p>
                 <p class="listing-address">${listing.address}</p>
+                ${floorText ? `<p class="listing-floor">${floorText}</p>` : ''}
                 ${description ? `<p class="listing-description">${description}</p>` : ''}
                 <div class="listing-actions">
                     <button class="btn btn-primary" data-id="${listing.id}">Забронировать</button>

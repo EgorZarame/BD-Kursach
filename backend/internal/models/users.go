@@ -37,8 +37,11 @@ func (m *UserModel) FindByEmail(email string) (*User, error) {
 	row := m.DB.QueryRow(stmt, email)
 
 	u := &User{}
+	
+	// Используем sql.NullString для обработки NULL значений
+	var firstName, lastName, patronymic sql.NullString
 
-	err := row.Scan(&u.ID, &u.FirstName, &u.LastName, &u.Patronymic, &u.Email, &u.Password, &u.RoleID)
+	err := row.Scan(&u.ID, &firstName, &lastName, &patronymic, &u.Email, &u.Password, &u.RoleID)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -46,6 +49,12 @@ func (m *UserModel) FindByEmail(email string) (*User, error) {
 		}
 		return nil, err
 	}
+	
+	// Преобразуем NullString в обычные строки
+	u.FirstName = firstName.String
+	u.LastName = lastName.String
+	u.Patronymic = patronymic.String
+	
 	return u, nil
 }
 

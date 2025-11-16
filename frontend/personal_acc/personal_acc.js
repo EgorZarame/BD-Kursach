@@ -1,6 +1,17 @@
 (function(){
   const fmtDate = (iso) => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('ru-RU'); };
   const fmtMoney = (n) => (Number(n)||0).toLocaleString('ru-RU') + ' ₽';
+  
+  const translateType = (code) => {
+    const map = { 
+      storage: 'Кладовка', 
+      office: 'Офис', 
+      retail: 'Торговое помещение', 
+      warehouse: 'Склад', 
+      garage: 'Гараж' 
+    };
+    return map[code] || code;
+  };
 
   (async function(){
     const token = App.ensureAuthOrRedirect(); if(!token) return;
@@ -29,12 +40,15 @@
       wrap.innerHTML = bookingsWithImages.map(b=>{
         const period = `${fmtDate(b.start_date)} — ${fmtDate(b.end_date)}`;
         const sum = fmtMoney(b.total_amount);
+        const typeTranslated = translateType(b.type);
+        const floorText = b.floor !== null && b.floor !== undefined ? `<p>Этаж: ${b.floor}</p>` : '';
         return `
       <div class="booking_card">
         <img src="${b.imgSrc}" alt="Помещение" class="listing-image">
         <div class="booking-info">
-          <p><strong>${b.type} — ${b.city}</strong></p>
+          <p><strong>${typeTranslated} — ${b.city}</strong></p>
           <p>${b.address}</p>
+          ${floorText}
           <p>Период: ${period}</p>
           <p>Сумма: ${sum}</p>
         </div>

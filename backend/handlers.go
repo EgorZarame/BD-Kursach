@@ -19,6 +19,32 @@ import (
 
 // jwtKey теперь хранится в приложении и читается из .env (см. main.go)
 
+// extractEmailFromToken извлекает email из JWT токена
+func (app *application) extractEmailFromToken(tokenString string) (string, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return app.jwtKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return "", fmt.Errorf("invalid token: %w", err)
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", fmt.Errorf("invalid token claims")
+	}
+
+	email, ok := claims["email"].(string)
+	if !ok || email == "" {
+		return "", fmt.Errorf("email not found in token")
+	}
+
+	return email, nil
+}
+
 func (app *application) Register() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var u models.User
@@ -120,7 +146,7 @@ func (app *application) GetAvailableListings() fiber.Handler {
 		}
 		rows, err := app.listings.DB.Query(`
             SELECT b.building_id, b.name, b.city, b.address, b.cost_per_day::text,
-                   COALESCE(b.description, '') AS comment, b.user_id
+                   COALESCE(b.description, '') AS comment, b.user_id, b.floor
 			FROM buildings b
 			WHERE NOT EXISTS (
 				SELECT 1 FROM rent r
@@ -137,7 +163,7 @@ func (app *application) GetAvailableListings() fiber.Handler {
 		var list []models.AvailableListing
 		for rows.Next() {
 			var l models.AvailableListing
-			if err := rows.Scan(&l.ID, &l.Type, &l.City, &l.Address, &l.Price, &l.Comment, &l.UserID); err != nil {
+			if err := rows.Scan(&l.ID, &l.Type, &l.City, &l.Address, &l.Price, &l.Comment, &l.UserID, &l.Floor); err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, "Ошибка чтения данных")
 			}
 			list = append(list, l)
@@ -191,7 +217,7 @@ func (app *application) GetMyBookings() fiber.Handler {
 
 		rows, err := app.listings.DB.Query(`
             SELECT r.rent_id, r.start_date, r.end_date, r.total_amount::text,
-                   b.building_id, b.name, b.city, b.address
+                   b.building_id, b.name, b.city, b.address, b.floor
             FROM rent r
             JOIN buildings b ON b.building_id = r.building_id
             WHERE r.user_id = $1
@@ -206,7 +232,7 @@ func (app *application) GetMyBookings() fiber.Handler {
 		var list []models.BookingView
 		for rows.Next() {
 			var b models.BookingView
-			if err := rows.Scan(&b.ID, &b.StartDate, &b.EndDate, &b.TotalAmount, &b.BuildingID, &b.Type, &b.City, &b.Address); err != nil {
+			if err := rows.Scan(&b.ID, &b.StartDate, &b.EndDate, &b.TotalAmount, &b.BuildingID, &b.Type, &b.City, &b.Address, &b.Floor); err != nil {
 				log.Println("Ошибка сканирования данных бронирования:", err)
 				return fiber.NewError(fiber.StatusInternalServerError, "Ошибка чтения данных")
 			}
@@ -286,6 +312,58 @@ func (app *application) CreateBooking() fiber.Handler {
 	}
 }
 
+// CalculateBookingPrice рассчитывает стоимость бронирования без создания записи
+func (app *application) CalculateBookingPrice() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		buildingIDStr := c.Query("building_id")
+		startDate := c.Query("start_date")
+		endDate := c.Query("end_date")
+
+		if buildingIDStr == "" || startDate == "" || endDate == "" {
+			return fiber.NewError(fiber.StatusBadRequest, "Не все параметры указаны")
+		}
+
+		buildingID, err := strconv.Atoi(buildingIDStr)
+		if err != nil || buildingID <= 0 {
+			return fiber.NewError(fiber.StatusBadRequest, "Некорректный ID помещения")
+		}
+
+		// Получим цену помещения (за месяц)
+		var priceText string
+		if err := app.listings.DB.QueryRow("SELECT cost_per_day::text FROM buildings WHERE building_id=$1", buildingID).Scan(&priceText); err != nil {
+			return fiber.NewError(fiber.StatusNotFound, "Объявление не найдено")
+		}
+		price, _ := strconv.Atoi(priceText)
+
+		start, err := time.Parse("2006-01-02", startDate)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "Неверная дата начала")
+		}
+		end, err := time.Parse("2006-01-02", endDate)
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "Неверная дата окончания")
+		}
+		if !end.After(start) {
+			return fiber.NewError(fiber.StatusBadRequest, "Дата окончания должна быть позже даты начала")
+		}
+
+		// Округляем количество месяцев вверх, считая 30 дней в месяце
+		days := int(end.Sub(start).Hours() / 24)
+		months := (days + 29) / 30
+		if months < 1 {
+			months = 1
+		}
+		total := price * months
+
+		return c.JSON(fiber.Map{
+			"total_amount": total,
+			"months":       months,
+			"days":         days,
+			"price_per_month": price,
+		})
+	}
+}
+
 func AddListingHandler(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session_token")
 	if err != nil || cookie.Value == "" {
@@ -343,8 +421,21 @@ func (app *application) SaveListingPost(c *fiber.Ctx) error {
 	// Проверяем авторизацию: cookie или Authorization
 	sess := c.Cookies("session_token")
 	authHeader := c.Get("Authorization")
-	if sess == "" && authHeader == "" {
+	
+	var tokenString string
+	if sess != "" {
+		tokenString = sess
+	} else if authHeader != "" {
+		tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+	} else {
 		return fiber.NewError(fiber.StatusUnauthorized, "Не авторизован")
+	}
+
+	// Извлекаем email из JWT токена
+	email, err := app.extractEmailFromToken(tokenString)
+	if err != nil {
+		log.Println("Ошибка извлечения email из токена:", err)
+		return fiber.NewError(fiber.StatusUnauthorized, "Неверный токен")
 	}
 
 	// Читаем JSON
@@ -359,8 +450,8 @@ func (app *application) SaveListingPost(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Описание обязательно и должно быть от 10 до 100 символов")
 	}
 
-	// Получаем user_id по email
-	user, err := app.users.FindByEmail(listingReq.UserEmail)
+	// Получаем user_id по email из токена (безопаснее, чем из запроса)
+	user, err := app.users.FindByEmail(email)
 	if err != nil {
 		log.Println("Ошибка получения user_id:", err)
 		return fiber.NewError(fiber.StatusNotFound, "Пользователь не найден")
@@ -375,6 +466,7 @@ func (app *application) SaveListingPost(c *fiber.Ctx) error {
 		Description: desc,
 		UserComment: listingReq.UserComment,
 		UserID:      user.ID,
+		Floor:       listingReq.Floor,
 	}
 
 	// Сохраняем в БД и получаем ID

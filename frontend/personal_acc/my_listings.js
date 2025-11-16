@@ -23,7 +23,13 @@ async function loadMyListings() {
 }
 
 function translateType(code) {
-    const map = { storage: 'Кладовка', office: 'Офис', retail: 'Торговое помещение', warehouse: 'Склад', garage: 'Гараж' };
+    const map = { 
+        storage: 'Кладовка', 
+        office: 'Офис', 
+        retail: 'Торговое помещение', 
+        warehouse: 'Склад', 
+        garage: 'Гараж' 
+    };
     return map[code] || code;
 }
 
@@ -38,6 +44,7 @@ function renderListings(listings) {
         const priceNum = parseInt(listing.price) || 0;
         const title = `${translateType(listing.type)} — ${listing.city}`;
         const description = listing.description || listing.comment || '';
+        const floorText = listing.floor !== null && listing.floor !== undefined ? `Этаж: ${listing.floor}` : '';
         return `
         <div class="listing">
             <img src="${img}" alt="Фото помещения" class="listing-image">
@@ -45,6 +52,7 @@ function renderListings(listings) {
                 <h3 class="listing-title">${title}</h3>
                 <p class="listing-price">${priceNum.toLocaleString()} ₽/мес</p>
                 <p class="listing-address">${listing.address}</p>
+                ${floorText ? `<p class="listing-floor">${floorText}</p>` : ''}
                 ${description ? `<p class="listing-description"><strong>Описание:</strong> ${description}</p>` : ''}
                 ${listing.user_comment ? `<p class="listing-user-comment"><strong>Комментарий:</strong> ${listing.user_comment}</p>` : ''}
                 <div class="listing-actions">
@@ -111,6 +119,9 @@ function setupAddModal() {
             const userEmail = checkAuth();
             if (!userEmail) return;
 
+            const floorValue = document.getElementById('add-floor').value;
+            const floor = floorValue ? parseInt(floorValue) : null;
+            
             const formData = {
                 type: document.getElementById('add-type').value,
                 city: document.getElementById('add-city').value,
@@ -118,7 +129,8 @@ function setupAddModal() {
                 price: document.getElementById('add-price').value,
                 description: (document.getElementById('add-description').value || '').trim(),
                 user_comment: (document.getElementById('add-user_comment').value || '').trim(),
-                user_email: userEmail
+                user_email: userEmail,
+                floor: floor
             };
 
             const descLen = formData.description.length;
@@ -162,6 +174,7 @@ function openEditModal(listing) {
     document.getElementById('edit-city').value = listing.city;
     document.getElementById('edit-address').value = listing.address;
     document.getElementById('edit-price').value = parseInt(listing.price) || 0;
+    document.getElementById('edit-floor').value = listing.floor || '';
     document.getElementById('edit-form').dataset.listingId = listing.id;
     document.getElementById('edit-modal').style.display = 'block';
 }
@@ -177,12 +190,15 @@ function setupEditForm() {
         const id = parseInt(form.dataset.listingId);
         const listingIndex = listingsData.findIndex(l => l.id === id);
         if (listingIndex === -1) return;
+        const floorValue = document.getElementById('edit-floor').value;
+        const floor = floorValue ? parseInt(floorValue) : null;
         listingsData[listingIndex] = {
             ...listingsData[listingIndex],
             type: document.getElementById('edit-type').value,
             city: document.getElementById('edit-city').value,
             address: document.getElementById('edit-address').value,
             price: String(parseInt(document.getElementById('edit-price').value) || 0),
+            floor: floor
         };
         renderListings(listingsData);
         closeEditModal();
@@ -244,6 +260,7 @@ async function openViewModal(listing) {
     document.getElementById('modal-type').textContent = translateType(listing.type);
     document.getElementById('modal-city').textContent = listing.city;
     document.getElementById('modal-address').textContent = listing.address;
+    document.getElementById('modal-floor').textContent = listing.floor !== null && listing.floor !== undefined ? listing.floor : 'Не указан';
     document.getElementById('modal-price').textContent = (parseInt(listing.price)||0).toLocaleString();
     document.getElementById('modal-description').textContent = listing.description || listing.comment || '';
     document.getElementById('modal-user-comment').textContent = listing.user_comment || '';

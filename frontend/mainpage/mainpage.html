@@ -70,6 +70,17 @@
                 <button class="btn" onclick="applyFilters()">Применить</button>
             </div>
         </div>
+
+        <div class="filter" id="floor-filter">
+            <button class="filter-btn">Этаж</button>
+            <div class="dropdown">
+                <label for="floor-min">От:</label>
+                <input type="number" id="floor-min" placeholder="0" min="0">
+                <label for="floor-max">До:</label>
+                <input type="number" id="floor-max" placeholder="100" min="0">
+                <button class="btn" onclick="applyFilters()">Применить</button>
+            </div>
+        </div>
     </div>
     <div class="buttons" style="display: flex; gap: .5rem;">
         <button class="btn" id="apply-filters">Применить</button>
@@ -159,6 +170,7 @@
             <label>Описание помещения</label>
             <p class="modal-price"></p>
             <p class="modal-address"></p>
+            <p class="modal-floor"></p>
             <p><span class="modal-description"></span></p>
             <p><span class="modal-comment"></span></p>
         </div>
@@ -168,6 +180,10 @@
                 <div class="date-inputs">
                     <input type="date" id="start-date" required>
                     <input type="date" id="end-date" required>
+                </div>
+                <div id="estimated-price" class="estimated-price" style="display: none;">
+                    <p><strong>Предварительная стоимость: <span id="price-amount">0</span> ₽</strong></p>
+                    <p style="font-size: 0.9rem; color: #666;" id="price-details"></p>
                 </div>
                 <div class="form-buttons">
                     <button type="submit" class="btn btn-primary">Забронировать</button>

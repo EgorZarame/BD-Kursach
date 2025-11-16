@@ -1,0 +1,144 @@
+body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: white;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+}
+
+.listing-form__grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.form__container:nth-child(1) {
+    flex-basis: 200px;
+}
+
+.form__container:nth-child(2) {
+    flex-grow: 1;
+}
+
+.form__container:last-child {
+    flex-basis: 100%;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+input[type="text"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 50px;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #2a5885;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #21466c;
+}
+
+.image-upload {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    margin-bottom: 15px;
+    width: 100%;
+    height: 100%;
+}
+
+.image-upload img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.image-upload label {
+    display: inline-block;
+    padding: 8px 20px;
+    margin-bottom: 15px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.nav-btn {
+    padding: 8px 15px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #333;
+}
+
+#view-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.5);
+    display: none; /* включаем flex в JS */
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+}
+
+#view-modal .modal-content {
+    background: #fff;
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow: auto;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+#view-modal .modal-body img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+#view-modal .close {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}

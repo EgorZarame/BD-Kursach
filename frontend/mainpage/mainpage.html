@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Аренда помещений по всей России / СвойКвадрат</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/public/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/public/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/public/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/public/favicon/site.webmanifest">
+
+    <link rel="stylesheet" href="/public/main.css">
+    <link rel="stylesheet" href="mainpage.css">
+</head>
+<body>
+{{template "header" . }}
+
+<div class="hero__container">
+    <h1>Hero-блок</h1>
+</div>
+
+<div class="filters__container">
+    <!-- Фильтры -->
+    <div class="filters">
+        <div class="filter" id="type-filter">
+            <button class="filter-btn">Тип помещения</button>
+            <div class="dropdown">
+                <select id="type">
+                    <option value="">Все типы</option>
+                    <option value="storage">Кладовка</option>
+                    <option value="office">Офис</option>
+                    <option value="warehouse">Склад</option>
+                </select>
+                <button class="btn" onclick="applyFilters()">Применить</button>
+            </div>
+        </div>
+
+        <div class="filter" id="price-filter">
+            <button class="filter-btn">Цена</button>
+            <div class="dropdown">
+                <label for="price-min">От:</label>
+                <input type="number" id="price-min" placeholder="0" min="0">
+                <label for="price-max">До:</label>
+                <input type="number" id="price-max" placeholder="100000" min="0">
+                <button class="btn" onclick="applyFilters()">Применить</button>
+            </div>
+        </div>
+
+        <div class="filter" id="city-filter">
+            <button class="filter-btn">Город</button>
+            <div class="dropdown">
+                <select id="city">
+                    <option value="">Все города</option>
+                    <option value="ufa">Уфа</option>
+                    <option value="moscow">Москва</option>
+                    <option value="spb">Санкт-Петербург</option>
+                </select>
+                <button class="btn" onclick="applyFilters()">Применить</button>
+            </div>
+        </div>
+
+        <div class="filter" id="date-filter">
+            <button class="filter-btn">Дата</button>
+            <div class="dropdown">
+                <label for="date-from">От:</label>
+                <input type="date" id="date-from">
+                <label for="date-to">До:</label>
+                <input type="date" id="date-to">
+                <button class="btn" onclick="applyFilters()">Применить</button>
+            </div>
+        </div>
+    </div>
+    <div class="buttons" style="display: flex; gap: .5rem;">
+        <button class="btn" id="apply-filters">Применить</button>
+        <button class="btn" id="reset-filters">Сбросить фильтры</button>
+    </div>
+</div>
+
+<!-- Список объявлений -->
+<div class="listings" id="listings-container"></div>
+<div class="no-results">Ничего не найдено. Пожалуйста измените фильтры или можете добавить объявление этой категории.</div>
+
+<div class="banner__container">
+    <h1>Рекламный блок</h1>
+</div>
+
+<!-- Как это работает -->
+<div id="how-it-works">
+    <h2>Как это работает</h2>
+    <div class="steps">
+        <div class="step">
+            <span class="step-number">1</span>
+            <h3>Выбор помещения</h3>
+            <p>Находите подходящее помещение через фильтры по городу, типу и цене.</p>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <h3>Бронирование</h3>
+            <p>Задаёте удобные даты и отправляете заявку онлайн.</p>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            <h3>Подтверждение</h3>
+            <p>Получаете подтверждение и инструкции для заселения.</p>
+        </div>
+        <div class="step">
+            <span class="step-number">4</span>
+            <h3>Доступ</h3>
+            <p>В назначенный день приезжаете и начинаете пользоваться помещением.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Вопросы и ответы -->
+<div id="faq">
+    <h2>Вопросы и ответы</h2>
+    <div class="accordion">
+        <div class="accordion-item">
+            <button class="accordion-header">Что такое "СвойКвадрат"?</button>
+            <div class="accordion-content">
+                <p>Это сервис аренды кладовок, офисов и складов по удобной системе, аналогичной американской self-storage.</p>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Как оплатить аренду?</button>
+            <div class="accordion-content">
+                <p>Оплата производится онлайн через безопасные платежные системы.</p>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Можно ли продлить аренду?</button>
+            <div class="accordion-content">
+                <p>Да, вы можете продлить аренду прямо в личном кабинете или связавшись с поддержкой.</p>
+            </div>
+        </div>
+        <div class="accordion-item">
+            <button class="accordion-header">Насколько это безопасно?</button>
+            <div class="accordion-content">
+                <p>Все помещения охраняются и оборудованы системами видеонаблюдения и доступа.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{template "footer"}}
+
+<div class="modal modal-main" id="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title"></h2>
+            <button class="close-btn">&times;</button>
+        </div>
+        <div class="image-container">
+            <img class="modal-image" src="" alt="Фото помещения">
+        </div>
+        <div class="modal-info">
+            <label>Описание помещения</label>
+            <p class="modal-price"></p>
+            <p class="modal-address"></p>
+            <p><span class="modal-description"></span></p>
+            <p><span class="modal-comment"></span></p>
+        </div>
+        <div class="booking-form-container">
+            <form class="booking-form">
+                <label>Выберите даты:</label>
+                <div class="date-inputs">
+                    <input type="date" id="start-date" required>
+                    <input type="date" id="end-date" required>
+                </div>
+                <div class="form-buttons">
+                    <button type="submit" class="btn btn-primary">Забронировать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="mainpage.js"></script>
+</body>
+</html>

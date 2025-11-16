@@ -1,0 +1,21 @@
+version: "3.7"
+
+services:
+  postgres-arenda:
+    image: postgres:17
+    container_name: postgres-arenda
+    environment:
+      - POSTGRES_PGAUDIT_LOG=READ,WRITE
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=arenda
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped

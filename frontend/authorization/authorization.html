@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Регистрация и вход / СвойКвадрат</title>
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/public/favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/public/favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/public/favicon/favicon-16x16.png">
+  <link rel="manifest" href="/public/favicon/site.webmanifest">
+
+  <link rel="stylesheet" href="/public/main.css">
+  <link rel="stylesheet" href="/public/auth.css">
+</head>
+<body>
+
+{{template "header"}}
+
+<div class="auth-container" id="register-container">
+  <h2>Регистрация</h2>
+  <div class="form-group">
+    <input class="form-input" type="text" id="reg-firstname" placeholder="Имя" required>
+  </div>
+  <div class="form-group">
+    <input class="form-input" type="text" id="reg-lastname" placeholder="Фамилия" required>
+  </div>
+  <div class="form-group">
+    <input class="form-input" type="text" id="reg-patronymic" placeholder="Отчество (необязательно)">
+  </div>
+  <div class="form-group">
+    <input class="form-input" type="email" id="reg-email" placeholder="Почта" required>
+  </div>
+  <div class="form-group">
+    <input class="form-input" type="password" id="reg-password" placeholder="Пароль" required>
+  </div>
+  <div class="form-group">
+    <input class="form-input" type="password" id="reg-confirm" placeholder="Повторите пароль" required>
+  </div>
+  <div class="form-group">
+    <label>Роль: <span style="color: red;">*</span></label>
+    <div class="role-group">
+      <label><input type="radio" name="role" value="owner" checked> Сдаю в аренду</label>
+      <label><input type="radio" name="role" value="renter"> Арендую</label>
+    </div>
+  </div>
+  <button class="btn" onclick="register()">Зарегистрироваться</button>
+  <div class="toggle" onclick="showLogin()">Уже есть аккаунт? Войти</div>
+</div>
+
+<div class="auth-container" id="login-container" style="display:none">
+  <h2>Авторизация</h2>
+  <div class="form-group">
+    <input class="form-input" type="email" id="login-email" placeholder="Почта" required>
+  </div>
+  <div class="form-group">
+    <input class="form-input" type="password" id="login-password" placeholder="Пароль" required>
+  </div>
+  <button class="btn" onclick="login()">Войти</button>
+  <div class="toggle" onclick="showRegister()">Нет аккаунта? Зарегистрироваться</div>
+</div>
+
+{{template "footer"}}
+
+<script src="/public/app.js"></script>
+<script src="/public/auth.js"></script>
+
+</body>
+</html>

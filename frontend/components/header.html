@@ -1,0 +1,38 @@
+{{define "header"}}
+<header class="header">
+    <div class="header__container">
+        <a href="/" class="logo">
+            <img src="frontend/public/logo.png" alt="СвойКвадрат" class="logo__image" />
+        </a>
+
+        {{if eq .role "admin"}}
+            <nav class="nav">
+                <a href="/" class="nav__item">Главная</a>
+                <a href="/" class="nav__item">Все бронирования</a>
+                <a href="/" class="nav__item">Все объявления</a>
+            </nav>
+            <button class="btn btn--primary header__btn" id="admin-btn">Админ-панель</button>
+        {{else if eq .role ""}}
+            <nav class="nav">
+                <a href="/" class="nav__item">Главная</a>
+                <a href="/#how-it-works" class="nav__item">Как работает?</a>
+                <a href="/#faq" class="nav__item">Вопросы и ответы</a>
+                <a href="/#footer" class="nav__item">Контакты</a>
+            </nav>
+            <div class="slider__buttons">
+                <a href="/auth#login" class="btn slider__btn active">Войти</a>
+                <a href="/auth#register" class="btn slider__btn">Регистрация</a>
+            </div>
+        {{else}}
+            <nav class="nav">
+                <a href="/" class="nav__item">Главная</a>
+                <a href="/personal" class="nav__item">Мои бронирования</a>
+                <a href="/my-listings" class="nav__item">Мои объявления</a>
+                <a href="/#footer" class="nav__item">Контакты</a>
+            </nav>
+            <button class="btn btn--primary header__btn" id="lk-btn">Личный кабинет</button>
+        {{end}}
+
+    </div>
+</header>
+{{end}}

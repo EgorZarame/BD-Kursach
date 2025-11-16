@@ -1,0 +1,60 @@
+body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.auth-container {
+    min-width: 360px;
+    margin: auto;
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 15px;
+    border: 1px solid var(--border);
+}
+
+.auth-container h2 { 
+    margin-bottom: 2rem;
+    color: var(--text-dark);
+    text-align: center;
+}
+
+.auth-container .btn {
+    background: var(--darker);
+    color: #ffffff;
+    padding: 10px; 
+    width: 100%; 
+}
+
+.role-group { 
+    margin-top: 10px; 
+    display: flex;
+    gap: 20px;
+}
+
+.role-group label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+
+.role-group input[type="radio"] {
+    margin: 0;
+}
+
+.toggle { 
+    font-size: .875rem;
+    text-align: center;
+    margin-top: 20px; 
+    cursor: pointer; 
+    color: var(--text-muted);
+    transition: color .3s ease;
+}
+
+.toggle:hover {
+    color: var(--darker);
+}
+
+

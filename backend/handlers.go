@@ -262,53 +262,45 @@ func (app *application) CreateBooking() fiber.Handler {
 		if err != nil {
 			return fiber.NewError(fiber.StatusNotFound, "Пользователь не найден")
 		}
-		// Проверка пересечения дат для выбранного помещения
-		{
-			var exists bool
-			err := app.listings.DB.QueryRow(`
-				SELECT EXISTS (
-					SELECT 1 FROM rent
-					WHERE building_id = $1
-					  AND NOT ($3 < start_date OR $2 > end_date)
-				)
-			`, req.BuildingID, req.StartDate, req.EndDate).Scan(&exists)
-			if err != nil {
-				return fiber.NewError(fiber.StatusInternalServerError, "Ошибка проверки доступности")
-			}
-			if exists {
-				return fiber.NewError(fiber.StatusConflict, "На выбранные даты помещение уже занято")
-			}
-		}
-		// Получим цену помещения (за месяц)
-		var priceText string
-		if err := app.listings.DB.QueryRow("SELECT cost_per_day::text FROM buildings WHERE building_id=$1", req.BuildingID).Scan(&priceText); err != nil {
+		
+		// Проверка существования помещения
+		var exists bool
+		if err := app.listings.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM buildings WHERE building_id=$1)", req.BuildingID).Scan(&exists); err != nil || !exists {
 			return fiber.NewError(fiber.StatusNotFound, "Объявление не найдено")
 		}
-		price, _ := strconv.Atoi(priceText)
-		start, err := time.Parse("2006-01-02", req.StartDate)
+		
+		// Валидация дат и проверка пересечения теперь выполняются в БД через CHECK constraint и триггер
+		// total_amount рассчитывается автоматически через триггер
+		// Вставляем NULL для total_amount, триггер рассчитает его автоматически
+		var totalAmount int
+		err = app.listings.DB.QueryRow(`
+			INSERT INTO rent (start_date, end_date, total_amount, user_id, building_id) 
+			VALUES ($1, $2, NULL, $3, $4)
+			RETURNING total_amount
+		`, req.StartDate, req.EndDate, user.ID, req.BuildingID).Scan(&totalAmount)
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "Неверная дата начала")
+			log.Println("Ошибка сохранения бронирования:", err)
+			// Проверяем, не является ли это ошибкой от триггера или constraint
+			errStr := err.Error()
+			if strings.Contains(errStr, "уже занято") {
+				return fiber.NewError(fiber.StatusConflict, "На выбранные даты помещение уже занято")
+			}
+			if strings.Contains(errStr, "дата окончания") || strings.Contains(errStr, "end_date") {
+				return fiber.NewError(fiber.StatusBadRequest, "Дата окончания должна быть позже даты начала")
+			}
+			return fiber.NewError(fiber.StatusInternalServerError, "Ошибка сохранения бронирования: "+errStr)
 		}
-		end, err := time.Parse("2006-01-02", req.EndDate)
-		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "Неверная дата окончания")
-		}
-		if !end.After(start) {
-			return fiber.NewError(fiber.StatusBadRequest, "Дата окончания должна быть позже даты начала")
-		}
-		// Округляем количество месяцев вверх, считая 30 дней в месяце
+		
+		// Вычисляем количество месяцев для ответа
+		start, _ := time.Parse("2006-01-02", req.StartDate)
+		end, _ := time.Parse("2006-01-02", req.EndDate)
 		days := int(end.Sub(start).Hours() / 24)
 		months := (days + 29) / 30
 		if months < 1 {
 			months = 1
 		}
-		total := price * months
-		_, err = app.listings.DB.Exec(`INSERT INTO rent (start_date, end_date, total_amount, user_id, building_id) VALUES ($1,$2,$3,$4,$5)`, req.StartDate, req.EndDate, total, user.ID, req.BuildingID)
-		if err != nil {
-			log.Println("Ошибка сохранения бронирования:", err)
-			return fiber.NewError(fiber.StatusInternalServerError, "Ошибка сохранения бронирования")
-		}
-		return c.JSON(fiber.Map{"message": "Бронирование создано", "total_amount": total, "months": months})
+		
+		return c.JSON(fiber.Map{"message": "Бронирование создано", "total_amount": totalAmount, "months": months})
 	}
 }
 
@@ -444,11 +436,8 @@ func (app *application) SaveListingPost(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Ошибка парсинга данных")
 	}
 
-	// Серверная валидация описания: 10..100 символов
+	// Валидация описания теперь выполняется в БД через CHECK constraint
 	desc := strings.TrimSpace(listingReq.Description)
-	if l := len([]rune(desc)); l < 10 || l > 100 {
-		return fiber.NewError(fiber.StatusBadRequest, "Описание обязательно и должно быть от 10 до 100 символов")
-	}
 
 	// Получаем user_id по email из токена (безопаснее, чем из запроса)
 	user, err := app.users.FindByEmail(email)
